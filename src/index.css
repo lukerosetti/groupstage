@@ -1,0 +1,83 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;0,9..144,900;1,9..144,400;1,9..144,500;1,9..144,700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Onest', sans-serif;
+  background: #F6F2E9;
+  color: #0E1B33;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root { min-height: 100vh; }
+
+.font-display {
+  font-family: 'Fraunces', serif;
+  font-variation-settings: "opsz" 144;
+  letter-spacing: -0.02em;
+}
+
+.font-italic-serif {
+  font-family: 'Fraunces', serif;
+  font-style: italic;
+  font-variation-settings: "opsz" 144;
+}
+
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.card {
+  background: #FFFFFF;
+  border: 1px solid rgba(14,27,51,0.08);
+  border-radius: 16px;
+}
+
+.card-lg {
+  background: #FFFFFF;
+  border: 1px solid rgba(14,27,51,0.08);
+  border-radius: 24px;
+}
+
+.soft-shadow {
+  box-shadow: 0 1px 2px rgba(14,27,51,0.04), 0 4px 14px -6px rgba(14,27,51,0.08);
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.25); }
+}
+.pulse-dot { animation: pulse-dot 1.6s infinite ease-in-out; }
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(200,37,44,0.5); }
+  70% { box-shadow: 0 0 0 12px rgba(200,37,44,0); }
+  100% { box-shadow: 0 0 0 0 rgba(200,37,44,0); }
+}
+.pulse-ring { animation: pulse-ring 1.8s infinite; }
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-1 { animation: fade-in-up 0.6s 0.05s ease-out both; }
+.fade-2 { animation: fade-in-up 0.6s 0.12s ease-out both; }
+.fade-3 { animation: fade-in-up 0.6s 0.2s ease-out both; }
+
+@keyframes score-flash {
+  0% { background-color: rgba(201,161,74,0.3); }
+  100% { background-color: transparent; }
+}
+.score-flash { animation: score-flash 1.5s ease-out; }
+
+.gold-text {
+  background: linear-gradient(135deg, #E0BA67, #C9A14A);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
