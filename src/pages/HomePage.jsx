@@ -90,7 +90,7 @@ export default function HomePage() {
                 {[
                   { n: '01', title: 'Create a pool', desc: 'Name it, share the invite code with up to 4 friends.' },
                   { n: '02', title: 'Pick your teams', desc: 'Each member selects teams from all 48 in the tournament.' },
-                  { n: '03', title: 'Track the matches', desc: 'Live scores update automatically. See who's winning your pool.' },
+                  { n: '03', title: 'Track the matches', desc: "Live scores update automatically. See who's winning your pool." },
                   { n: '04', title: 'Claim the crown', desc: 'Most points when the final whistle blows wins.' },
                 ].map(s => (
                   <li key={s.n} className="flex items-start gap-4">
