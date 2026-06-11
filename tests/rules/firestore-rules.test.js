@@ -35,8 +35,9 @@ let testEnv;
 // ── Setup / teardown ────────────────────────────────────────────────────────
 
 beforeAll(async () => {
+  // demo- prefix: emulator accepts it without any real Firebase credentials
   testEnv = await initializeTestEnvironment({
-    projectId: 'groupstage-test',
+    projectId: 'demo-groupstage-test',
     firestore: {
       rules: readFileSync(RULES_PATH, 'utf8'),
       host: '127.0.0.1',
