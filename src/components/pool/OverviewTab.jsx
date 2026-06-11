@@ -153,7 +153,7 @@ export default function OverviewTab({ pool, members, matches, poolId, inviteUrl 
 
       {/* Commissioner: manage member emails */}
       {isCommissioner && !editMode && (
-        <MemberEmailPanel members={members} poolId={poolId} />
+        <MemberEmailPanel members={members} poolId={poolId} poolName={pool.name} />
       )}
 
       {/* Standings preview */}
@@ -250,16 +250,15 @@ export default function OverviewTab({ pool, members, matches, poolId, inviteUrl 
   );
 }
 
-function MemberEmailPanel({ members, poolId }) {
+function MemberEmailPanel({ members, poolId, poolName }) {
   const [emails, setEmails]   = useState({});   // { memberId: draftValue }
   const [saving, setSaving]   = useState(null);  // memberId being saved
   const [saved,  setSaved]    = useState(null);  // memberId just saved
   const [open,   setOpen]     = useState(false);
 
   const missingCount = members.filter(m => !m.email).length;
-  if (missingCount === 0 && !open) return null;
 
-  const poolEnc = encodeURIComponent(pool.name);
+  const poolEnc = encodeURIComponent(poolName ?? '');
   const roomUrl = () => `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
 
   async function saveEmail(member) {
