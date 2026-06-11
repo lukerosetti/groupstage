@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .env
 .env.local
+
+# Firebase service account — contains private keys, NEVER commit
+serviceAccount.json
