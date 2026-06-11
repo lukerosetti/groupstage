@@ -148,11 +148,12 @@ export default function CreatePoolPage() {
             const mId      = memberIds[i] || '';
             // Token (memberId) in link = one-click join, no email required.
             // Email param kept alongside for pre-fill where available.
+            const poolEnc = encodeURIComponent(poolName.trim());
             const memberLink = mId
-              ? `${window.location.origin}/p/${poolId}/join?token=${mId}${hasEmail ? `&email=${encodeURIComponent(m.email.trim().toLowerCase())}` : ''}`
+              ? `${window.location.origin}/p/${poolId}/join?token=${mId}${hasEmail ? `&email=${encodeURIComponent(m.email.trim().toLowerCase())}` : ''}&pool=${poolEnc}`
               : hasEmail
-                ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email.trim().toLowerCase())}`
-                : `${window.location.origin}/p/${poolId}/join`;
+                ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email.trim().toLowerCase())}&pool=${poolEnc}`
+                : `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
             return (
               <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
                 <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"

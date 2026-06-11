@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ChevronDown, LogOut } from 'lucide-react';
 import { C } from '../../lib/colors';
 import useLocalUser from '../../hooks/useLocalUser';
@@ -8,6 +8,7 @@ import { getKnownPools, clearLocalUser } from '../../lib/localUser';
 export default function Nav() {
   const { user, setUser } = useLocalUser();
   const navigate = useNavigate();
+  const location = useLocation();
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
 
@@ -16,6 +17,13 @@ export default function Nav() {
     : '?';
 
   const pools = getKnownPools();
+
+  // Derive current pool name from URL if on a pool page
+  const poolIdMatch = location.pathname.match(/^\/p\/([^/]+)/);
+  const currentPoolId = poolIdMatch ? poolIdMatch[1] : null;
+  const currentPoolName = currentPoolId
+    ? (pools.find(p => p.id === currentPoolId)?.name ?? null)
+    : null;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -46,6 +54,16 @@ export default function Nav() {
             <div className="text-[10px] tracking-[0.2em] mt-1 uppercase" style={{ color: C.muted }}>2026 World Cup pools</div>
           </div>
         </Link>
+
+        {/* Current pool name — shown small when on a pool page */}
+        {currentPoolName && (
+          <div className="flex-1 flex justify-center pointer-events-none">
+            <span className="text-xs font-semibold tracking-wide truncate max-w-[180px] sm:max-w-xs"
+              style={{ color: C.muted }}>
+              {currentPoolName}
+            </span>
+          </div>
+        )}
 
         {/* Right side */}
         <div className="flex items-center gap-3 shrink-0">

@@ -236,7 +236,7 @@ export default function OverviewTab({ pool, members, matches, poolId, inviteUrl 
           <div className="card-lg p-6">
             <div className="space-y-3">
               {members.filter(m => m.status !== 'joined').map(m => {
-                const link = `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email)}`;
+                const link = `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email)}&pool=${encodeURIComponent(pool.name)}`;
                 return (
                   <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
@@ -271,10 +271,11 @@ function MemberEmailPanel({ members, poolId }) {
   const missingCount = members.filter(m => !m.email).length;
   if (missingCount === 0 && !open) return null;
 
+  const poolEnc = encodeURIComponent(pool.name);
   const roomUrl = (email) =>
     email
-      ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(email.trim().toLowerCase())}`
-      : `${window.location.origin}/p/${poolId}/join`;
+      ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(email.trim().toLowerCase())}&pool=${poolEnc}`
+      : `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
 
   async function saveEmail(member) {
     const val = (emails[member.id] ?? member.email ?? '').trim().toLowerCase();
