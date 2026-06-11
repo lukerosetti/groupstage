@@ -1,4 +1,4 @@
-import { Copy, Check, Edit2, X, Save, Mail } from 'lucide-react';
+import { Copy, Check, Edit2, X, Save, Mail, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { C } from '../../lib/colors';
@@ -441,24 +441,61 @@ function EditAssignmentsPanel({ members, editAssignments, unassigned, onRemove, 
 }
 
 function MemberCard({ member }) {
-  const flags = (member.teams || []).map(c => teamByCode[c]?.flag).filter(Boolean);
+  const [open, setOpen] = useState(false);
+  const teams = (member.teams || []).map(c => teamByCode[c]).filter(Boolean);
   const initials = member.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const hasTeams = teams.length > 0;
+
   return (
-    <div className="card-lg p-5">
-      <div className="flex items-center gap-3 mb-3">
-        <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white"
-          style={{ background: member.color }}>
-          {initials}
-        </div>
-        <div>
-          <div className="font-semibold">{member.name}</div>
-          <div className="text-xs" style={{ color: member.teams?.length ? C.green : C.muted }}>
-            {member.teams?.length ? `${member.teams.length} teams picked` : 'Pending…'}
+    <div
+      className="card-lg overflow-hidden"
+      style={{ cursor: hasTeams ? 'pointer' : 'default' }}
+      onClick={() => hasTeams && setOpen(o => !o)}
+    >
+      {/* Always-visible header */}
+      <div className="p-5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shrink-0"
+            style={{ background: member.color }}>
+            {initials}
           </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold truncate">{member.name}</div>
+            <div className="text-xs" style={{ color: hasTeams ? C.green : C.muted }}>
+              {hasTeams ? `${teams.length} teams` : 'Pending…'}
+            </div>
+          </div>
+          {hasTeams && (
+            <ChevronDown size={15} style={{
+              color: C.muted,
+              transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s',
+              flexShrink: 0,
+            }} />
+          )}
         </div>
+
+        {/* Collapsed: flags row */}
+        {!open && hasTeams && (
+          <div className="mt-3 text-xl leading-relaxed">
+            {teams.map(t => t.flag).join(' ')}
+          </div>
+        )}
       </div>
-      {flags.length > 0 && (
-        <div className="text-xl leading-relaxed">{flags.join(' ')}</div>
+
+      {/* Expanded: full team list */}
+      {open && (
+        <div style={{ borderTop: `1px solid ${C.border}` }}>
+          {teams.map(t => (
+            <div key={t.code}
+              className="flex items-center gap-3 px-5 py-2.5"
+              style={{ borderBottom: `1px solid ${C.border}` }}>
+              <span className="text-lg w-7 shrink-0">{t.flag}</span>
+              <span className="text-sm font-semibold flex-1">{t.name}</span>
+              <span className="text-[10px] font-mono" style={{ color: C.muted }}>{t.conf}</span>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );
