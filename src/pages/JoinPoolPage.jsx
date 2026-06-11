@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Check, ArrowUpRight, Copy, Link as LinkIcon } from 'lucide-react';
 import { C } from '../lib/colors';
-import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { usePool } from '../hooks/usePool';
 import { saveLocalUser, addKnownPool } from '../lib/localUser';
@@ -10,16 +10,11 @@ import useLocalUser from '../hooks/useLocalUser';
 
 export default function JoinPoolPage() {
   const { id } = useParams();
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { pool, members, loading } = usePool(id);
   const { setUser } = useLocalUser();
 
-  // Pre-fill from invite link query params
-  const tokenParam = searchParams.get('token');   // memberId embedded in link
-  const emailParam  = searchParams.get('email');
-
-  const [email, setEmail]           = useState(emailParam || '');
+  const [email, setEmail]           = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [claimed, setClaimed]       = useState(false);
@@ -28,37 +23,6 @@ export default function JoinPoolPage() {
 
   // Find the member slot that matches the email input
   const matchedMember = members.find(m => m.email && m.email === email.trim().toLowerCase());
-
-  // If a token is present, auto-claim as soon as pool data loads
-  useEffect(() => {
-    if (!tokenParam || loading || claimed || !pool) return;
-    claimByToken(tokenParam);
-  }, [tokenParam, loading, pool]);
-
-  async function claimByToken(memberId) {
-    setSubmitting(true);
-    setError('');
-    try {
-      const memberRef  = doc(db, 'pools', id, 'members', memberId);
-      const memberSnap = await getDoc(memberRef);
-      if (!memberSnap.exists()) {
-        setError('Invite link is invalid or expired. Ask the commissioner to re-send it.');
-        return;
-      }
-      const data = memberSnap.data();
-      await updateDoc(memberRef, { status: 'joined' });
-      saveLocalUser({ name: data.name, email: data.email || '', memberId });
-      setUser({ name: data.name, email: data.email || '', memberId });
-      addKnownPool(id, pool?.name);
-      // Store meta for recovery screen — do NOT auto-navigate so user can save link
-      setClaimedMeta({ memberId, name: data.name, email: data.email || '' });
-      setClaimed(true);
-    } catch {
-      setError('Something went wrong. Try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  }
 
   async function handleClaim(e) {
     e.preventDefault();
@@ -121,7 +85,7 @@ export default function JoinPoolPage() {
           Join <span className="font-italic-serif" style={{ color: C.navy }}>{pool.name}</span>
         </h2>
         <p className="mt-3 text-sm" style={{ color: C.muted }}>
-          Confirm your email to claim your spot. Use the email the commissioner registered for you.
+          Enter your email to claim your spot — or to get back in on a new device.
         </p>
       </div>
 
@@ -154,7 +118,7 @@ export default function JoinPoolPage() {
       {/* Claim form */}
       <form onSubmit={handleClaim} className="card-lg p-6 space-y-4">
         <div className="text-xs uppercase tracking-widest font-semibold" style={{ color: C.muted }}>
-          Confirm your email to join
+          Enter your email
         </div>
         <input type="email" value={email} onChange={e => setEmail(e.target.value)}
           placeholder="your@email.com"
@@ -179,20 +143,18 @@ export default function JoinPoolPage() {
       </form>
 
       <div className="mt-4 text-xs text-center" style={{ color: C.muted }}>
-        Don't see your name? Ask the commissioner to double-check the email they registered for you.
+        Don't see your name? Ask the commissioner to add your email to the member list.
       </div>
     </div>
   );
 }
 
 // ── Recovery reminder shown immediately after joining ─────────────────────────
-// This screen replaces the old "You're in → auto-navigate" so every member sees
-// their personal recovery link before landing in the pool. The link IS the invite
-// link — opening it on any device re-establishes their identity without email.
 function RecoveryReminder({ poolId, poolName, meta, onContinue }) {
   const [copied, setCopied] = useState(false);
 
-  const recoveryLink = `${window.location.origin}/p/${poolId}/join?token=${meta.memberId}${poolName ? `&pool=${encodeURIComponent(poolName)}` : ''}`;
+  // The pool join link is the recovery link — user just enters their email
+  const recoveryLink = `${window.location.origin}/p/${poolId}/join${poolName ? `?pool=${encodeURIComponent(poolName)}` : ''}`;
 
   async function copyLink() {
     try {
@@ -200,7 +162,7 @@ function RecoveryReminder({ poolId, poolName, meta, onContinue }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      /* clipboard blocked — user can copy manually */
+      /* clipboard blocked */
     }
   }
 
@@ -226,10 +188,10 @@ function RecoveryReminder({ poolId, poolName, meta, onContinue }) {
             <LinkIcon size={16} style={{ color: C.navy }} />
           </div>
           <div>
-            <div className="font-semibold text-sm mb-0.5">Save your recovery link</div>
+            <div className="font-semibold text-sm mb-0.5">Bookmark this link</div>
             <div className="text-xs leading-relaxed" style={{ color: C.muted }}>
-              Your identity lives in this browser. If you switch devices or clear your cache,
-              open this link to get back in — no password needed.
+              On a new device or after clearing your browser? Open this link and enter
+              your email (<strong>{meta.email || 'the one you just used'}</strong>) to get back in instantly.
             </div>
           </div>
         </div>
@@ -244,24 +206,9 @@ function RecoveryReminder({ poolId, poolName, meta, onContinue }) {
           className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2"
           style={{ background: copied ? C.green : C.navy, color: 'white', transition: 'background 0.2s' }}>
           <Copy size={14} />
-          {copied ? 'Copied!' : 'Copy recovery link'}
+          {copied ? 'Copied!' : 'Copy link'}
         </button>
       </div>
-
-      {/* Email fallback note */}
-      {meta.email ? (
-        <div className="text-xs text-center mb-6" style={{ color: C.muted }}>
-          You also have email <strong>{meta.email}</strong> on file — use{' '}
-          <a href="/recover" className="underline" style={{ color: C.navy }}>groupstage.app/recover</a>{' '}
-          as a backup.
-        </div>
-      ) : (
-        <div className="text-xs text-center mb-6 px-2 py-2 rounded-lg"
-          style={{ background: 'rgba(201,161,74,0.1)', color: C.muted, border: `1px solid rgba(201,161,74,0.3)` }}>
-          No email on file — this link is your only way back in on a new device.
-          Ask the commissioner to add your email if you'd prefer email recovery.
-        </div>
-      )}
 
       <button onClick={onContinue}
         className="w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2"

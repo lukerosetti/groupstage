@@ -130,6 +130,7 @@ export default function CreatePoolPage() {
 
   // ── Invite step (step 4) ────────────────────────────────────────────────
   if (step === 4 && poolId) {
+    const poolInviteLink = `${window.location.origin}/p/${poolId}/join?pool=${encodeURIComponent(poolName.trim())}`;
     return (
       <div className="px-6 py-12 max-w-2xl mx-auto">
         <div className="mb-8">
@@ -138,49 +139,49 @@ export default function CreatePoolPage() {
             Invite your <span className="font-italic-serif" style={{ color: C.navy }}>crew.</span>
           </h2>
           <p className="mt-3 text-sm" style={{ color: C.muted }}>
-            Share each person's unique link. When they click it and confirm their email, they're linked to their slot.
+            Share one link with everyone. Each person enters their email to claim their spot — no per-person links needed.
           </p>
         </div>
 
+        {/* Single invite link */}
+        <div className="card-lg p-6 mb-6">
+          <div className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: C.muted }}>Pool invite link</div>
+          <div className="rounded-lg px-3 py-2 mb-3 font-mono text-xs truncate"
+            style={{ background: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+            {poolInviteLink}
+          </div>
+          <CopyButton url={poolInviteLink} label="Copy invite link" />
+        </div>
+
+        {/* Member list — for reference */}
         <div className="card-lg p-6 space-y-3 mb-6">
-          {members.map((m, i) => {
-            const hasEmail = !!m.email.trim();
-            const mId      = memberIds[i] || '';
-            // Token (memberId) in link = one-click join, no email required.
-            // Email param kept alongside for pre-fill where available.
-            const poolEnc = encodeURIComponent(poolName.trim());
-            const memberLink = mId
-              ? `${window.location.origin}/p/${poolId}/join?token=${mId}${hasEmail ? `&email=${encodeURIComponent(m.email.trim().toLowerCase())}` : ''}&pool=${poolEnc}`
-              : hasEmail
-                ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email.trim().toLowerCase())}&pool=${poolEnc}`
-                : `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
-            return (
-              <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                  style={{ background: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>
-                  {m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-sm">{m.name} {i === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold ml-1" style={{ background: 'rgba(30,58,111,0.1)', color: C.navy }}>YOU</span>}</div>
-                  <div className="text-xs truncate font-mono mt-0.5" style={{ color: hasEmail ? C.muted : C.gold }}>
-                    {hasEmail ? m.email : 'No email — add from pool settings to generate unique link'}
-                  </div>
-                </div>
-                {i === 0
-                  ? <span className="text-xs font-semibold" style={{ color: C.green }}>✓ Joined</span>
-                  : <CopyButton url={memberLink} label={hasEmail ? 'Copy link' : 'Copy general link'} />
-                }
+          <div className="text-xs uppercase tracking-widest font-semibold mb-1" style={{ color: C.muted }}>Members</div>
+          {members.map((m, i) => (
+            <div key={i} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
+                style={{ background: MEMBER_COLORS[i % MEMBER_COLORS.length] }}>
+                {m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
               </div>
-            );
-          })}
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm">{m.name} {i === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded font-bold ml-1" style={{ background: 'rgba(30,58,111,0.1)', color: C.navy }}>YOU</span>}</div>
+                <div className="text-xs truncate font-mono mt-0.5" style={{ color: m.email.trim() ? C.muted : C.gold }}>
+                  {m.email.trim() || 'No email — they can still join but won\'t be recoverable'}
+                </div>
+              </div>
+              {i === 0
+                ? <span className="text-xs font-semibold" style={{ color: C.green }}>✓ Joined</span>
+                : <span className="text-xs" style={{ color: C.muted }}>Invited</span>
+              }
+            </div>
+          ))}
         </div>
 
         <div className="card-lg p-5 mb-6" style={{ background: 'rgba(30,58,111,0.04)', border: `1px solid ${C.border}` }}>
           <div className="text-xs uppercase tracking-widest font-semibold mb-2" style={{ color: C.muted }}>How it works</div>
           <ol className="space-y-1.5 text-sm" style={{ color: C.muted }}>
-            <li>1. Copy each person's link and send it to them (iMessage, WhatsApp, email)</li>
-            <li>2. They open it, confirm their email, and they're in</li>
-            <li>3. Once everyone's joined, run the draft — then upload the results here</li>
+            <li>1. Copy the link above and drop it in your group chat</li>
+            <li>2. Everyone opens it and enters their email — they're matched to their slot</li>
+            <li>3. The same link works on any device, any time — it's also how they recover access</li>
           </ol>
         </div>
 

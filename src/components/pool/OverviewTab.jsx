@@ -234,26 +234,14 @@ export default function OverviewTab({ pool, members, matches, poolId, inviteUrl 
         <div>
           <h3 className="font-display text-xl mb-4" style={{ fontWeight: 700 }}>Invite friends</h3>
           <div className="card-lg p-6">
-            <div className="space-y-3">
-              {members.filter(m => m.status !== 'joined').map(m => {
-                const link = `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(m.email)}&pool=${encodeURIComponent(pool.name)}`;
-                return (
-                  <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl" style={{ background: C.bg }}>
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0"
-                      style={{ background: m.color }}>
-                      {m.name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm">{m.name}</div>
-                      <div className="text-xs truncate font-mono mt-0.5" style={{ color: C.muted }}>{m.email}</div>
-                    </div>
-                    <CopyButton url={link} />
-                  </div>
-                );
-              })}
+            <div className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: C.muted }}>Pool invite link</div>
+            <div className="rounded-lg px-3 py-2 mb-3 font-mono text-xs truncate"
+              style={{ background: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+              {`${window.location.origin}/p/${poolId}/join?pool=${encodeURIComponent(pool.name)}`}
             </div>
+            <CopyButton url={`${window.location.origin}/p/${poolId}/join?pool=${encodeURIComponent(pool.name)}`} />
             <div className="text-xs mt-3" style={{ color: C.muted }}>
-              Each person has a unique link — clicking it pre-fills their email so they join the right slot.
+              Share this one link with everyone. Each person enters their email to claim their spot — and it's how they get back in on any device.
             </div>
           </div>
         </div>
@@ -272,10 +260,7 @@ function MemberEmailPanel({ members, poolId }) {
   if (missingCount === 0 && !open) return null;
 
   const poolEnc = encodeURIComponent(pool.name);
-  const roomUrl = (email) =>
-    email
-      ? `${window.location.origin}/p/${poolId}/join?email=${encodeURIComponent(email.trim().toLowerCase())}&pool=${poolEnc}`
-      : `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
+  const roomUrl = () => `${window.location.origin}/p/${poolId}/join?pool=${poolEnc}`;
 
   async function saveEmail(member) {
     const val = (emails[member.id] ?? member.email ?? '').trim().toLowerCase();
@@ -302,11 +287,11 @@ function MemberEmailPanel({ members, poolId }) {
       {open && (
         <div className="card-lg p-5 space-y-3">
           <div className="text-xs" style={{ color: C.muted }}>
-            Add an email to generate a unique invite link for each member. They click it to link their account.
+            Add an email for each member so they can identify themselves when joining.
           </div>
           {members.map(m => {
             const draft   = emails[m.id] ?? m.email ?? '';
-            const link    = roomUrl(m.email);
+            const link    = roomUrl();
             const hasEmail = !!m.email;
             return (
               <div key={m.id} className="flex items-center gap-3 flex-wrap">
