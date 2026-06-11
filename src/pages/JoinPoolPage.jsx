@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Check, ArrowUpRight, Copy, Link as LinkIcon } from 'lucide-react';
 import { C } from '../lib/colors';
-import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { usePool } from '../hooks/usePool';
 import { saveLocalUser, addKnownPool } from '../lib/localUser';
@@ -14,57 +14,40 @@ export default function JoinPoolPage() {
   const { pool, members, loading } = usePool(id);
   const { setUser } = useLocalUser();
 
-  const [email, setEmail]           = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError]           = useState('');
-  const [claimed, setClaimed]       = useState(false);
+  const [email, setEmail]   = useState('');
+  const [error, setError]   = useState('');
+  const [claimed, setClaimed] = useState(false);
   // Stored after a successful claim so the recovery screen can build the link
   const [claimedMeta, setClaimedMeta] = useState(null); // { memberId, name, email }
 
   // Find the member slot that matches the email input
   const matchedMember = members.find(m => m.email && m.email === email.trim().toLowerCase());
 
-  async function handleClaim(e) {
+  function handleClaim(e) {
     e.preventDefault();
-    if (!email.trim()) { setError('Enter your email.'); return; }
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) { setError('Enter your email.'); return; }
 
-    setSubmitting(true);
-    setError('');
-    try {
-      const q = query(
-        collection(db, 'pools', id, 'members'),
-        where('email', '==', email.trim().toLowerCase())
+    // Use already-loaded members — no extra Firestore query needed.
+    const matched = members.find(m => m.email && m.email === normalizedEmail);
+    if (!matched) {
+      setError(
+        "No slot found for that email. Make sure you're using the exact email the commissioner registered for you — " +
+        "or ask them to check the member list."
       );
-      const snap = await getDocs(q);
-
-      if (snap.empty) {
-        setError(
-          "No slot found for that email. Make sure you're using the exact email the commissioner registered for you — " +
-          "or ask them to check the member list."
-        );
-        return;
-      }
-
-      const memberDoc  = snap.docs[0];
-      const memberData = memberDoc.data();
-      const memberId   = memberDoc.id;
-
-      // Set identity in localStorage FIRST — this must not be gated on a Firestore write.
-      saveLocalUser({ name: memberData.name, email: memberData.email, memberId });
-      setUser({ name: memberData.name, email: memberData.email, memberId });
-      addKnownPool(id, pool?.name);
-      setClaimedMeta({ memberId, name: memberData.name, email: memberData.email || '' });
-      setClaimed(true);
-
-      // Update status in the background — best-effort, non-blocking.
-      updateDoc(doc(db, 'pools', id, 'members', memberId), { status: 'joined' })
-        .catch(err => console.warn('Status update failed (non-fatal):', err));
-    } catch (err) {
-      console.error('handleClaim error:', err);
-      setError('Something went wrong. Try again.');
-    } finally {
-      setSubmitting(false);
+      return;
     }
+
+    // Set identity synchronously — this must never be gated on a Firestore write.
+    saveLocalUser({ name: matched.name, email: matched.email, memberId: matched.id });
+    setUser({ name: matched.name, email: matched.email, memberId: matched.id });
+    addKnownPool(id, pool?.name);
+    setClaimedMeta({ memberId: matched.id, name: matched.name, email: matched.email || '' });
+    setClaimed(true);
+
+    // Update joined status in the background — best-effort, non-blocking.
+    updateDoc(doc(db, 'pools', id, 'members', matched.id), { status: 'joined' })
+      .catch(err => console.warn('Status update failed (non-fatal):', err));
   }
 
   if (loading) return <div className="px-6 py-20 text-center" style={{ color: C.muted }}>Loading…</div>;
@@ -138,10 +121,10 @@ export default function JoinPoolPage() {
 
         {error && <div className="text-sm" style={{ color: C.red }}>{error}</div>}
 
-        <button type="submit" disabled={submitting}
+        <button type="submit"
           className="w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
-          style={{ background: C.navy, color: 'white', opacity: submitting ? 0.6 : 1 }}>
-          {submitting ? 'Confirming…' : 'Confirm & join pool'}
+          style={{ background: C.navy, color: 'white' }}>
+          Confirm & join pool
           <ArrowUpRight size={16} />
         </button>
       </form>
