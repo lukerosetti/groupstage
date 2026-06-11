@@ -33,12 +33,12 @@ export default function HomePage() {
       <section className="px-6 pt-14 pb-16">
         <div className="grid lg:grid-cols-12 gap-10 items-center max-w-7xl mx-auto">
           <div className="lg:col-span-7">
-            <div className="flex items-center gap-3 mb-6 fade-1">
-              <div className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2" style={{ background: 'rgba(200,37,44,0.1)', color: C.red }}>
+            <div className="flex items-center flex-wrap gap-2 mb-6 fade-1">
+              <div className="px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-2 shrink-0" style={{ background: 'rgba(200,37,44,0.1)', color: C.red }}>
                 <div className="w-1.5 h-1.5 rounded-full pulse-dot" style={{ background: C.red }} />
                 Tournament live
               </div>
-              <span className="text-sm" style={{ color: C.muted }}>Jun 11 — Jul 19 · USA · Mexico · Canada</span>
+              <span className="text-sm" style={{ color: C.muted }}>Jun 11 – Jul 19 · USA · Mexico · Canada</span>
             </div>
             <h1 className="font-display fade-2" style={{ fontSize: 'clamp(2.5rem, 6.5vw, 5.5rem)', lineHeight: 1, fontWeight: 800 }}>
               Pick the champions.<br />
@@ -47,9 +47,9 @@ export default function HomePage() {
             <p className="mt-7 max-w-xl text-lg leading-relaxed fade-3" style={{ color: C.muted }}>
               Build your roster, start a pool, and track every match across North America. Forty-eight nations, one tournament, one winner in your group chat.
             </p>
-            <div className="mt-9 flex flex-wrap gap-3">
+            <div className="mt-9 flex flex-col sm:flex-row sm:flex-wrap gap-3">
               <Link to="/create"
-                className="text-white px-6 py-3.5 rounded-lg font-semibold flex items-center gap-2 no-underline"
+                className="text-white px-6 py-3.5 rounded-lg font-semibold flex items-center justify-center gap-2 no-underline"
                 style={{ background: C.navy }}>
                 Create a pool <ArrowUpRight size={16} />
               </Link>
@@ -59,11 +59,11 @@ export default function HomePage() {
                   value={code}
                   onChange={e => setCode(e.target.value)}
                   placeholder="Enter pool code"
-                  className="card px-4 py-3.5 text-sm font-medium outline-none rounded-lg"
-                  style={{ minWidth: 160 }}
+                  className="card px-4 py-3.5 text-sm font-medium outline-none rounded-lg flex-1"
+                  style={{ minWidth: 0 }}
                 />
                 <button type="submit" disabled={loading}
-                  className="px-4 py-3.5 rounded-lg font-semibold text-sm"
+                  className="px-5 py-3.5 rounded-lg font-semibold text-sm shrink-0"
                   style={{ background: C.ink, color: 'white', opacity: loading ? 0.6 : 1 }}>
                   Join
                 </button>

@@ -34,6 +34,7 @@ export default function PoolPage() {
   if (!pool) return null;
 
   const inviteUrl = `${window.location.origin}/p/${id}/join`;
+  const allJoined = members.length > 0 && members.every(m => m.status === 'joined');
 
   return (
     <div>
@@ -46,21 +47,23 @@ export default function PoolPage() {
             </div>
             <h1 className="font-display text-4xl" style={{ fontWeight: 800 }}>{pool.name}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <CopyInvite url={inviteUrl} />
-            <Link to={`/p/${id}/join`}
-              className="px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 no-underline"
-              style={{ background: C.navy, color: 'white' }}>
-              Invite <ArrowUpRight size={14} />
-            </Link>
-          </div>
+          {!allJoined && (
+            <div className="flex items-center gap-3">
+              <CopyInvite url={inviteUrl} />
+              <Link to={`/p/${id}/join`}
+                className="px-4 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-1.5 no-underline"
+                style={{ background: C.navy, color: 'white' }}>
+                Invite <ArrowUpRight size={14} />
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
-        <div className="flex overflow-x-auto scrollbar-hide gap-1 -mb-px">
+        <div className="flex overflow-x-auto scrollbar-hide gap-1 -mb-px" style={{ WebkitOverflowScrolling: 'touch' }}>
           {TABS.map(t => (
             <button key={t.id} onClick={() => setActiveTab(t.id)}
-              className="px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors"
+              className="px-4 py-2.5 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors shrink-0"
               style={{
                 color: activeTab === t.id ? C.navy : C.muted,
                 borderColor: activeTab === t.id ? C.navy : 'transparent',
@@ -74,9 +77,9 @@ export default function PoolPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeTab === 'overview' && <OverviewTab pool={pool} members={members} matches={matches} poolId={id} inviteUrl={inviteUrl} />}
-        {activeTab === 'bracket' && <BracketTab matches={matches} />}
+        {activeTab === 'bracket' && <BracketTab matches={matches} members={members} />}
         {activeTab === 'schedule' && <ScheduleTab matches={matches} members={members} />}
-        {activeTab === 'teams' && <TeamsTab />}
+        {activeTab === 'teams' && <TeamsTab members={members} />}
         {activeTab === 'standings' && <StandingsTab members={members} matches={matches} pool={pool} />}
       </div>
     </div>

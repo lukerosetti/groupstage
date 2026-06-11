@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { C } from '../lib/colors';
-import { collectionGroup, query, where, getDocs } from 'firebase/firestore';
+import { collectionGroup, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { saveLocalUser, addKnownPool } from '../lib/localUser';
 import useLocalUser from '../hooks/useLocalUser';
@@ -22,11 +22,18 @@ export default function RecoverPage() {
     try {
       const q = query(collectionGroup(db, 'members'), where('email', '==', email.trim().toLowerCase()));
       const snap = await getDocs(q);
-      const found = snap.docs.map(d => ({
-        memberId: d.id,
-        poolId: d.ref.parent.parent.id,
-        ...d.data(),
+
+      // Fetch pool names in parallel
+      const found = await Promise.all(snap.docs.map(async d => {
+        const poolId = d.ref.parent.parent.id;
+        let poolName = poolId;
+        try {
+          const poolSnap = await getDoc(doc(db, 'pools', poolId));
+          if (poolSnap.exists()) poolName = poolSnap.data().name || poolId;
+        } catch { /* fallback to id */ }
+        return { memberId: d.id, poolId, poolName, ...d.data() };
       }));
+
       setResults(found);
       if (found.length === 0) setError('No pools found for that email.');
     } catch (err) {
@@ -39,7 +46,7 @@ export default function RecoverPage() {
   function restore(member) {
     saveLocalUser({ name: member.name, email: member.email, memberId: member.memberId });
     setUser({ name: member.name, email: member.email, memberId: member.memberId });
-    addKnownPool(member.poolId);
+    addKnownPool(member.poolId, member.poolName);
     navigate(`/p/${member.poolId}`);
   }
 
@@ -53,6 +60,13 @@ export default function RecoverPage() {
         <p className="mt-3 text-sm" style={{ color: C.muted }}>
           Enter the email you used when you joined your pool. We'll find it and restore your access.
         </p>
+        {/* Token-link path — for members without an email on file */}
+        <div className="mt-4 rounded-xl px-4 py-3 text-xs leading-relaxed"
+          style={{ background: 'rgba(30,58,111,0.05)', border: `1px solid ${C.border}`, color: C.muted }}>
+          <strong style={{ color: C.ink }}>No email on file?</strong>{' '}
+          Open the original invite link you received — it includes your personal token and
+          works as a recovery link on any device. Ask your commissioner to re-send it if needed.
+        </div>
       </div>
 
       <form onSubmit={handleRecover} className="card-lg p-6 space-y-4">
@@ -69,18 +83,20 @@ export default function RecoverPage() {
       </form>
 
       {results && results.length > 0 && (
-        <div className="mt-6 card-lg p-6">
-          <div className="text-xs uppercase tracking-widest font-semibold mb-3" style={{ color: C.muted }}>Found {results.length} pool{results.length !== 1 ? 's' : ''}</div>
-          <div className="space-y-2">
+        <div className="mt-6 card-lg overflow-hidden">
+          <div className="px-5 pt-4 pb-2 text-xs uppercase tracking-widest font-semibold" style={{ color: C.muted }}>
+            Found {results.length} pool{results.length !== 1 ? 's' : ''}
+          </div>
+          <div style={{ borderTop: `1px solid ${C.border}` }}>
             {results.map(m => (
               <button key={m.memberId} onClick={() => restore(m)}
-                className="w-full text-left p-3 rounded-lg flex items-center justify-between"
-                style={{ background: C.bg }}>
-                <div>
-                  <div className="font-semibold text-sm">{m.name}</div>
-                  <div className="text-xs mt-0.5" style={{ color: C.muted }}>Pool: {m.poolId}</div>
+                className="w-full text-left px-5 py-4 flex items-center justify-between gap-3"
+                style={{ borderBottom: `1px solid ${C.border}` }}>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm">{m.poolName}</div>
+                  <div className="text-xs mt-0.5" style={{ color: C.muted }}>Playing as <strong>{m.name}</strong></div>
                 </div>
-                <span className="text-xs font-semibold" style={{ color: C.navy }}>Restore →</span>
+                <span className="text-sm font-semibold shrink-0" style={{ color: C.navy }}>Restore →</span>
               </button>
             ))}
           </div>

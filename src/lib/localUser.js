@@ -14,12 +14,21 @@ export function saveLocalUser(data) {
   localStorage.setItem(KEY, JSON.stringify({ ...existing, ...data }));
 }
 
-export function addKnownPool(poolId) {
+// knownPools is now an array of { id, name } objects (legacy: plain strings)
+export function addKnownPool(poolId, poolName) {
   const user = getLocalUser() || { knownPools: [] };
-  if (!user.knownPools.includes(poolId)) {
-    user.knownPools = [...(user.knownPools || []), poolId];
+  const pools = (user.knownPools || []).map(p => typeof p === 'string' ? { id: p, name: p } : p);
+  if (!pools.find(p => p.id === poolId)) {
+    pools.push({ id: poolId, name: poolName || poolId });
+    user.knownPools = pools;
     localStorage.setItem(KEY, JSON.stringify(user));
   }
+}
+
+export function getKnownPools() {
+  const user = getLocalUser();
+  if (!user?.knownPools) return [];
+  return (user.knownPools).map(p => typeof p === 'string' ? { id: p, name: p } : p);
 }
 
 export function clearLocalUser() {

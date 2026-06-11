@@ -56,3 +56,56 @@ export const TEAMS = [
 ];
 
 export const teamByCode = Object.fromEntries(TEAMS.map(t => [t.code, t]));
+
+/**
+ * Aliases: maps every known football-data.org TLA variant → our canonical code.
+ * Add entries here whenever a new mismatch surfaces; never change the canonical
+ * codes in TEAMS (those are the source of truth for the app).
+ */
+export const TLA_ALIASES = {
+  // URY is what football-data.org sends; URU is our canonical
+  URY: 'URU',
+  // Iran variants
+  IRI: 'IRN',
+  // Saudi Arabia variants
+  SAU: 'KSA',
+  // South Korea variants
+  PRK: 'KOR',  // just in case
+  // Cape Verde variants
+  CAP: 'CPV',
+  // Côte d'Ivoire variants
+  CIV: 'CIV',
+  // DR Congo variants
+  CGO: 'COD',
+  // Bosnia variants
+  BOS: 'BIH',
+  // Curaçao variants
+  CUR: 'CUW',
+  // United States variants
+  US:  'USA',
+  // New Zealand variants
+  NZE: 'NZL',
+};
+
+/**
+ * Resolve any TLA (including football-data.org variants) to our canonical
+ * team object.  Returns undefined if truly unknown.
+ */
+export function resolveTeam(tla) {
+  if (!tla) return undefined;
+  return teamByCode[tla] || teamByCode[TLA_ALIASES[tla]];
+}
+
+/** Resolve TLA → canonical code string (or the original if unknown). */
+export function resolveCode(tla) {
+  if (!tla) return 'UNK';
+  return TLA_ALIASES[tla] || tla;
+}
+
+// ── Dev assertion: all 48 teams must resolve to a flag ────────────────────────
+if (import.meta.env?.DEV) {
+  const missing = TEAMS.filter(t => !t.flag || !t.code);
+  if (missing.length) {
+    console.error('🚨 teams.js: entries missing code or flag:', missing.map(t => t.name));
+  }
+}

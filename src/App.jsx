@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import CreatePoolPage from './pages/CreatePoolPage';
 import JoinPoolPage from './pages/JoinPoolPage';
 import DraftUploadPage from './pages/DraftUploadPage';
+import DraftRoomPage from './pages/DraftRoomPage';
 import PoolPage from './pages/PoolPage';
 import RecoverPage from './pages/RecoverPage';
 
@@ -21,6 +22,7 @@ export default function App() {
             <Route path="/create" element={<CreatePoolPage />} />
             <Route path="/p/:id/join" element={<JoinPoolPage />} />
             <Route path="/p/:id/draft" element={<DraftUploadPage />} />
+            <Route path="/p/:id/room"  element={<DraftRoomPage />} />
             <Route path="/p/:id" element={<PoolPage />} />
             <Route path="/recover" element={<RecoverPage />} />
           </Routes>

@@ -24,3 +24,15 @@ dist-ssr
 *.sw?
 .env
 .env.local
+
+# Firebase service account — contains private keys, NEVER commit
+serviceAccount.json
+
+# Firebase deploy cache
+.firebase/
+
+# Claude Code session data
+.claude/
+
+# Draft board spreadsheet (generated artifact)
+public/*.xlsx

@@ -1,0 +1,57 @@
+name: Firestore Rules Tests
+
+on:
+  push:
+    paths:
+      - 'firestore.rules'
+      - 'tests/rules/**'
+      - '.github/workflows/rules-tests.yml'
+  pull_request:
+    paths:
+      - 'firestore.rules'
+      - 'tests/rules/**'
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  rules:
+    name: Rules tests against Firestore emulator
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      # firebase-tools ships the emulator binaries.
+      # Installing globally is the fastest path; version is pinned so
+      # the emulator behaviour doesn't change under us between runs.
+      - name: Install firebase-tools
+        run: npm install -g firebase-tools@13
+
+      # Cache the emulator JARs so we don't re-download them every run
+      # (~50 MB). The cache key ties to the firebase-tools version.
+      - name: Cache emulator binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/firebase/emulators
+          key: firebase-emulators-v13-${{ runner.os }}
+
+      # emulators:exec starts the emulator, runs the quoted command,
+      # then shuts everything down and forwards the command's exit code.
+      # --project must match the projectId used in initializeTestEnvironment.
+      - name: Run rules tests
+        run: |
+          firebase emulators:exec \
+            --only firestore \
+            --project demo-groupstage-test \
+            "npx vitest run tests/rules/firestore-rules.test.js"
