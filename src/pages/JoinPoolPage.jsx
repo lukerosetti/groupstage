@@ -49,14 +49,18 @@ export default function JoinPoolPage() {
       const memberData = memberDoc.data();
       const memberId   = memberDoc.id;
 
-      await updateDoc(doc(db, 'pools', id, 'members', memberId), { status: 'joined' });
+      // Set identity in localStorage FIRST — this must not be gated on a Firestore write.
       saveLocalUser({ name: memberData.name, email: memberData.email, memberId });
       setUser({ name: memberData.name, email: memberData.email, memberId });
       addKnownPool(id, pool?.name);
-      // Store meta for recovery screen — do NOT auto-navigate so user can save link
       setClaimedMeta({ memberId, name: memberData.name, email: memberData.email || '' });
       setClaimed(true);
-    } catch {
+
+      // Update status in the background — best-effort, non-blocking.
+      updateDoc(doc(db, 'pools', id, 'members', memberId), { status: 'joined' })
+        .catch(err => console.warn('Status update failed (non-fatal):', err));
+    } catch (err) {
+      console.error('handleClaim error:', err);
       setError('Something went wrong. Try again.');
     } finally {
       setSubmitting(false);
