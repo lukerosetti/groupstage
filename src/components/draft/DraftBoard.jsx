@@ -12,6 +12,8 @@ export default function DraftBoard({
   const [search,     setSearch]     = useState('');
   const [picking,    setPicking]    = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  // Set when the server rejects a pick (team taken or not your turn)
+  const [pickError,   setPickError]   = useState('');
 
   const currentPickerId = draft.order[draft.currentPickIndex];
   const currentMember   = draft.members.find(m => m.id === currentPickerId);
@@ -44,12 +46,24 @@ export default function DraftBoard({
   async function handlePick(teamCode) {
     if (!canPick || picking) return;
     setPicking(true);
+    setPickError('');
     try {
       // Commissioner picks on behalf of whoever's turn it is
       const pickAs = isMyTurn ? myMember.id : currentPickerId;
       await onPick(teamCode, pickAs);
     } catch (err) {
-      console.error('Pick error:', err);
+      // The Firestore transaction throws a descriptive message when the team
+      // was claimed by another client in the same instant — surface it.
+      const msg = err?.message || '';
+      if (msg.includes('not available') || msg.includes('taken')) {
+        setPickError('That team was just taken — pick another!');
+      } else if (msg.includes('Not your turn')) {
+        setPickError("It's no longer your turn.");
+      } else {
+        setPickError('Pick failed — try again.');
+      }
+      // Auto-dismiss after 4 seconds
+      setTimeout(() => setPickError(''), 4000);
     } finally {
       setPicking(false);
     }
@@ -143,6 +157,15 @@ export default function DraftBoard({
                   Commissioner override — select a team on their behalf.
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Race-condition error: team was claimed by another picker simultaneously */}
+          {pickError && (
+            <div className="rounded-xl px-4 py-3 mb-4 flex items-center gap-2 text-sm font-semibold"
+              style={{ background: 'rgba(220,38,38,0.08)', border: '1.5px solid rgba(220,38,38,0.35)', color: '#dc2626' }}>
+              <span>⚡</span>
+              {pickError}
             </div>
           )}
 

@@ -1,38 +1,88 @@
 rules_version = '2';
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Threat model: accidental corruption and pool-members breaking their own data.
+// NOT designed to stop a determined attacker (no Firebase Auth → no user identity).
+//
+// Key principle: the Admin SDK (sync daemon, finalizeDraft server actions) bypasses
+// ALL rules. So locking a collection to `allow write: if false` still permits the
+// daemon to write while blocking every browser client.
+// ──────────────────────────────────────────────────────────────────────────────
+
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ── Match data ────────────────────────────────────────────────────────────
-    // Written exclusively by the Admin SDK sync daemon — clients may only read.
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    // Fields that only the sync daemon should ever write.
+    // A client submitting any of these keys is either confused or malicious.
+    function noSyncFields(data) {
+      return !data.keys().hasAny([
+        'score', 'homeScore', 'awayScore', 'winner',
+        'externalId', 'kickoff', 'round', 'group', 'matchday',
+        'updatedAt'  // daemon-only timestamp on match docs
+      ]);
+    }
+
+    // ── Match data (football-data.org sync, daemon-only writes) ──────────────
+    // Admin SDK bypasses this rule — clients are unconditionally blocked.
     match /matches/{matchId} {
       allow read:  if true;
       allow write: if false;
     }
 
     // ── Pools ─────────────────────────────────────────────────────────────────
-    // Pool IDs are random Firebase-generated strings (unguessable).
-    // No Firebase Auth is used — identity is stored in localStorage.
-    // Security relies on the unguessable pool ID acting as a capability token.
     match /pools/{poolId} {
+
+      // Pools must not contain any sync-daemon fields.
+      function validPoolFields() {
+        return noSyncFields(request.resource.data);
+      }
+
       allow read:   if true;
-      allow create: if true;              // anyone can create a pool
-      allow update: if true;              // status, commissioner, team assignments
-      allow delete: if false;
+      allow create: if validPoolFields();
+      allow update: if validPoolFields();
+      allow delete: if false;   // pools are permanent (soft-delete via status if needed)
 
       // ── Members ─────────────────────────────────────────────────────────────
       match /members/{memberId} {
+
+        // Member docs must not contain scoring or sync fields.
+        function validMemberFields() {
+          return noSyncFields(request.resource.data);
+        }
+
         allow read:   if true;
-        allow create: if true;            // joining via invite link
-        allow update: if true;            // team assignments, join status, draft picks
+        allow create: if validMemberFields();   // joining via invite link
+        allow update: if validMemberFields();   // status, email, teams, draftedAt, etc.
         allow delete: if false;
+
       }
 
-      // ── Draft room ──────────────────────────────────────────────────────────
+      // ── Draft room ───────────────────────────────────────────────────────────
       match /drafts/{draftId} {
+
+        // After the commissioner finalizes the draft (status → 'finalized'),
+        // only presence heartbeat updates are allowed. Picks, team lists,
+        // and order become immutable so nobody can retroactively change results.
+        //
+        // Note: the finalizeDraft() call itself transitions status complete→finalized,
+        // which is allowed because resource.data.status is 'complete' (not 'finalized')
+        // at that moment.
+        function draftUpdateAllowed() {
+          return
+            // Draft does not yet exist (create path — handled by create rule)
+            !exists(/databases/$(database)/documents/pools/$(poolId)/drafts/$(draftId)) ||
+            // Draft is not yet finalized — all client updates permitted
+            resource.data.status != 'finalized' ||
+            // Draft IS finalized — only the presence heartbeat map may change
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['presence']);
+        }
+
         allow read:   if true;
-        allow create: if true;            // commissioner initialises lobby
-        allow update: if true;            // picks, timer advances, presence heartbeats
-        allow delete: if true;            // commissioner reset
+        allow create: if true;                  // commissioner initialises lobby
+        allow update: if draftUpdateAllowed();
+        allow delete: if true;                  // commissioner reset clears the doc
       }
     }
   }

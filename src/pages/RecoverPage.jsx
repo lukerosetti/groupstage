@@ -60,6 +60,13 @@ export default function RecoverPage() {
         <p className="mt-3 text-sm" style={{ color: C.muted }}>
           Enter the email you used when you joined your pool. We'll find it and restore your access.
         </p>
+        {/* Token-link path — for members without an email on file */}
+        <div className="mt-4 rounded-xl px-4 py-3 text-xs leading-relaxed"
+          style={{ background: 'rgba(30,58,111,0.05)', border: `1px solid ${C.border}`, color: C.muted }}>
+          <strong style={{ color: C.ink }}>No email on file?</strong>{' '}
+          Open the original invite link you received — it includes your personal token and
+          works as a recovery link on any device. Ask your commissioner to re-send it if needed.
+        </div>
       </div>
 
       <form onSubmit={handleRecover} className="card-lg p-6 space-y-4">

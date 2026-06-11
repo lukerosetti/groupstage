@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { Check, ArrowUpRight } from 'lucide-react';
+import { Check, ArrowUpRight, Copy, Link as LinkIcon } from 'lucide-react';
 import { C } from '../lib/colors';
 import { collection, query, where, getDocs, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -23,6 +23,8 @@ export default function JoinPoolPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
   const [claimed, setClaimed]       = useState(false);
+  // Stored after a successful claim so the recovery screen can build the link
+  const [claimedMeta, setClaimedMeta] = useState(null); // { memberId, name, email }
 
   // Find the member slot that matches the email input
   const matchedMember = members.find(m => m.email && m.email === email.trim().toLowerCase());
@@ -48,8 +50,9 @@ export default function JoinPoolPage() {
       saveLocalUser({ name: data.name, email: data.email || '', memberId });
       setUser({ name: data.name, email: data.email || '', memberId });
       addKnownPool(id, pool?.name);
+      // Store meta for recovery screen — do NOT auto-navigate so user can save link
+      setClaimedMeta({ memberId, name: data.name, email: data.email || '' });
       setClaimed(true);
-      setTimeout(() => navigate(`/p/${id}`), 1500);
     } catch {
       setError('Something went wrong. Try again.');
     } finally {
@@ -80,13 +83,15 @@ export default function JoinPoolPage() {
 
       const memberDoc  = snap.docs[0];
       const memberData = memberDoc.data();
+      const memberId   = memberDoc.id;
 
-      await updateDoc(doc(db, 'pools', id, 'members', memberDoc.id), { status: 'joined' });
-      saveLocalUser({ name: memberData.name, email: memberData.email, memberId: memberDoc.id });
-      setUser({ name: memberData.name, email: memberData.email, memberId: memberDoc.id });
+      await updateDoc(doc(db, 'pools', id, 'members', memberId), { status: 'joined' });
+      saveLocalUser({ name: memberData.name, email: memberData.email, memberId });
+      setUser({ name: memberData.name, email: memberData.email, memberId });
       addKnownPool(id, pool?.name);
+      // Store meta for recovery screen — do NOT auto-navigate so user can save link
+      setClaimedMeta({ memberId, name: memberData.name, email: memberData.email || '' });
       setClaimed(true);
-      setTimeout(() => navigate(`/p/${id}`), 1500);
     } catch {
       setError('Something went wrong. Try again.');
     } finally {
@@ -97,16 +102,14 @@ export default function JoinPoolPage() {
   if (loading) return <div className="px-6 py-20 text-center" style={{ color: C.muted }}>Loading…</div>;
   if (!pool)   return <div className="px-6 py-20 text-center" style={{ color: C.red }}>Pool not found.</div>;
 
-  if (claimed) {
+  if (claimed && claimedMeta) {
     return (
-      <div className="px-6 py-20 max-w-md mx-auto text-center">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-          style={{ background: C.green }}>
-          <Check size={28} color="white" />
-        </div>
-        <div className="font-display text-3xl mb-2" style={{ fontWeight: 700 }}>You're in!</div>
-        <div className="text-sm" style={{ color: C.muted }}>Taking you to the pool…</div>
-      </div>
+      <RecoveryReminder
+        poolId={id}
+        poolName={pool?.name}
+        meta={claimedMeta}
+        onContinue={() => navigate(`/p/${id}`)}
+      />
     );
   }
 
@@ -178,6 +181,94 @@ export default function JoinPoolPage() {
       <div className="mt-4 text-xs text-center" style={{ color: C.muted }}>
         Don't see your name? Ask the commissioner to double-check the email they registered for you.
       </div>
+    </div>
+  );
+}
+
+// ── Recovery reminder shown immediately after joining ─────────────────────────
+// This screen replaces the old "You're in → auto-navigate" so every member sees
+// their personal recovery link before landing in the pool. The link IS the invite
+// link — opening it on any device re-establishes their identity without email.
+function RecoveryReminder({ poolId, poolName, meta, onContinue }) {
+  const [copied, setCopied] = useState(false);
+
+  const recoveryLink = `${window.location.origin}/p/${poolId}/join?token=${meta.memberId}${poolName ? `&pool=${encodeURIComponent(poolName)}` : ''}`;
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(recoveryLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — user can copy manually */
+    }
+  }
+
+  return (
+    <div className="px-6 py-12 max-w-md mx-auto">
+      {/* Success header */}
+      <div className="flex flex-col items-center text-center mb-8">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4"
+          style={{ background: C.green }}>
+          <Check size={28} color="white" />
+        </div>
+        <div className="font-display text-3xl mb-1" style={{ fontWeight: 700 }}>You're in!</div>
+        <div className="text-sm" style={{ color: C.muted }}>
+          Playing as <strong>{meta.name}</strong> in <strong>{poolName}</strong>
+        </div>
+      </div>
+
+      {/* Recovery link card */}
+      <div className="card-lg p-5 mb-4">
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(30,58,111,0.1)' }}>
+            <LinkIcon size={16} style={{ color: C.navy }} />
+          </div>
+          <div>
+            <div className="font-semibold text-sm mb-0.5">Save your recovery link</div>
+            <div className="text-xs leading-relaxed" style={{ color: C.muted }}>
+              Your identity lives in this browser. If you switch devices or clear your cache,
+              open this link to get back in — no password needed.
+            </div>
+          </div>
+        </div>
+
+        {/* Link preview */}
+        <div className="rounded-lg px-3 py-2 mb-3 font-mono text-xs truncate"
+          style={{ background: C.bg, color: C.muted, border: `1px solid ${C.border}` }}>
+          {recoveryLink}
+        </div>
+
+        <button onClick={copyLink}
+          className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2"
+          style={{ background: copied ? C.green : C.navy, color: 'white', transition: 'background 0.2s' }}>
+          <Copy size={14} />
+          {copied ? 'Copied!' : 'Copy recovery link'}
+        </button>
+      </div>
+
+      {/* Email fallback note */}
+      {meta.email ? (
+        <div className="text-xs text-center mb-6" style={{ color: C.muted }}>
+          You also have email <strong>{meta.email}</strong> on file — use{' '}
+          <a href="/recover" className="underline" style={{ color: C.navy }}>groupstage.app/recover</a>{' '}
+          as a backup.
+        </div>
+      ) : (
+        <div className="text-xs text-center mb-6 px-2 py-2 rounded-lg"
+          style={{ background: 'rgba(201,161,74,0.1)', color: C.muted, border: `1px solid rgba(201,161,74,0.3)` }}>
+          No email on file — this link is your only way back in on a new device.
+          Ask the commissioner to add your email if you'd prefer email recovery.
+        </div>
+      )}
+
+      <button onClick={onContinue}
+        className="w-full py-3 rounded-lg font-semibold flex items-center justify-center gap-2"
+        style={{ background: C.navy, color: 'white' }}>
+        Go to {poolName || 'pool'}
+        <ArrowUpRight size={16} />
+      </button>
     </div>
   );
 }
