@@ -1,0 +1,39 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Match data ────────────────────────────────────────────────────────────
+    // Written exclusively by the Admin SDK sync daemon — clients may only read.
+    match /matches/{matchId} {
+      allow read:  if true;
+      allow write: if false;
+    }
+
+    // ── Pools ─────────────────────────────────────────────────────────────────
+    // Pool IDs are random Firebase-generated strings (unguessable).
+    // No Firebase Auth is used — identity is stored in localStorage.
+    // Security relies on the unguessable pool ID acting as a capability token.
+    match /pools/{poolId} {
+      allow read:   if true;
+      allow create: if true;              // anyone can create a pool
+      allow update: if true;              // status, commissioner, team assignments
+      allow delete: if false;
+
+      // ── Members ─────────────────────────────────────────────────────────────
+      match /members/{memberId} {
+        allow read:   if true;
+        allow create: if true;            // joining via invite link
+        allow update: if true;            // team assignments, join status, draft picks
+        allow delete: if false;
+      }
+
+      // ── Draft room ──────────────────────────────────────────────────────────
+      match /drafts/{draftId} {
+        allow read:   if true;
+        allow create: if true;            // commissioner initialises lobby
+        allow update: if true;            // picks, timer advances, presence heartbeats
+        allow delete: if true;            // commissioner reset
+      }
+    }
+  }
+}

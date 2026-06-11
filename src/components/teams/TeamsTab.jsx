@@ -6,10 +6,16 @@ import { fetchSquad } from '../../lib/apiFootball';
 
 const CONFS = ['All', 'UEFA', 'CONMEBOL', 'CONCACAF', 'AFC', 'CAF', 'OFC'];
 
-export default function TeamsTab() {
+export default function TeamsTab({ members = [] }) {
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [selectedTeam, setSelectedTeam] = useState(null);
+
+  // Build teamCode → owner map
+  const ownerByTeam = {};
+  for (const m of members) {
+    for (const code of (m.teams || [])) ownerByTeam[code] = m;
+  }
 
   const filtered = TEAMS.filter(t => {
     const matchesConf = filter === 'All' || t.conf === filter;
@@ -40,14 +46,24 @@ export default function TeamsTab() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        {filtered.map(t => (
-          <button key={t.code} onClick={() => setSelectedTeam(t)}
-            className="card text-left p-4 rounded-xl hover:-translate-y-0.5 transition-transform">
-            <div className="text-3xl mb-2">{t.flag}</div>
-            <div className="font-semibold text-sm">{t.name}</div>
-            <div className="text-[10px] mt-1 font-mono" style={{ color: C.muted }}>{t.conf} · #{t.rank}</div>
-          </button>
-        ))}
+        {filtered.map(t => {
+          const owner = ownerByTeam[t.code];
+          return (
+            <button key={t.code} onClick={() => setSelectedTeam(t)}
+              className="card text-left p-4 rounded-xl hover:-translate-y-0.5 transition-transform relative"
+              style={{ borderColor: owner ? owner.color : undefined, borderWidth: owner ? 2 : 1 }}>
+              {owner && (
+                <div className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full" style={{ background: owner.color }} title={owner.name} />
+              )}
+              <div className="text-3xl mb-2">{t.flag}</div>
+              <div className="font-semibold text-sm">{t.name}</div>
+              <div className="text-[10px] mt-1 font-mono" style={{ color: C.muted }}>{t.conf} · #{t.rank}</div>
+              {owner && (
+                <div className="text-[10px] mt-1 font-semibold truncate" style={{ color: owner.color }}>{owner.name.split(' ')[0]}</div>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       <Modal open={!!selectedTeam} onClose={() => setSelectedTeam(null)} title={selectedTeam?.name}>

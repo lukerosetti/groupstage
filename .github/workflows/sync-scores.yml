@@ -1,0 +1,41 @@
+name: Sync Match Scores
+
+on:
+  # Run every 5 minutes — GitHub's minimum cron interval.
+  # During live matches this means scores update within 5 min, which is
+  # fine for a pool app (nobody needs sub-minute score updates).
+  schedule:
+    - cron: '*/5 * * * *'
+
+  # Allow manual trigger from the Actions tab (useful for testing / catch-up)
+  workflow_dispatch:
+
+jobs:
+  sync:
+    name: Sync scores from football-data.org → Firestore
+    runs-on: ubuntu-latest
+    timeout-minutes: 3   # kill if the script hangs
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --ignore-scripts
+
+      - name: Run score sync
+        run: node scripts/syncScores.mjs
+        env:
+          # Store your Firebase service account JSON as a GitHub repository secret:
+          # GitHub repo → Settings → Secrets and variables → Actions → New repository secret
+          # Name:  FIREBASE_SERVICE_ACCOUNT
+          # Value: paste the full contents of your serviceAccount.json file
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          # Optional: override the football-data API key via secret instead of hardcoding
+          # FOOTBALL_DATA_KEY: ${{ secrets.FOOTBALL_DATA_KEY }}
