@@ -19,6 +19,7 @@ service cloud.firestore {
     function noSyncFields(data) {
       return !data.keys().hasAny([
         'score', 'homeScore', 'awayScore', 'winner',
+        'points',   // computed scoring field — clients must never write this
         'externalId', 'kickoff', 'round', 'group', 'matchday',
         'updatedAt'  // daemon-only timestamp on match docs
       ]);
