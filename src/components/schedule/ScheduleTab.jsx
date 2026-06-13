@@ -29,8 +29,8 @@ export default function ScheduleTab({ matches, members }) {
     if (!m.kickoff) return false;
     const d = getDate(m);
     if (sub === 'live')      return m.status === 'live';
-    if (sub === 'today')     return isToday(d) && m.status !== 'live';
-    if (sub === 'upcoming')  return isFuture(d) && m.status === 'scheduled';
+    if (sub === 'today')     return isToday(d);   // include live + scheduled + completed today
+    if (sub === 'upcoming')  return isFuture(d) && m.status === 'scheduled' && !isToday(d);
     if (sub === 'completed') return m.status === 'completed';
     return true;
   });

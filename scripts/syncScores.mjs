@@ -130,15 +130,22 @@ async function main() {
       const status  = STATUS_MAP[m.status]  || 'scheduled';
       const round   = ROUND_MAP[m.stage]    || 'group';
 
-      // ── Skip completed matches that already have a score stored ──────────
-      // Completed matches never change — this is the main write-reduction lever.
+      // ── Skip completed matches only when team codes are already correct ────
+      // If homeTeam/awayTeam are still 'UNK' (seeded before API had team data),
+      // we must NOT skip — we need to write the real codes even on finished games.
       const prev = existing[docId];
+      const homeCode_peek = normCode(m.homeTeam?.tla);
+      const awayCode_peek = normCode(m.awayTeam?.tla);
       if (
         prev &&
         prev.status === 'completed' &&
         status === 'completed' &&
         prev.score?.home != null &&
-        prev.score?.away != null
+        prev.score?.away != null &&
+        prev.homeTeam !== 'UNK' &&
+        prev.awayTeam !== 'UNK' &&
+        prev.homeTeam === homeCode_peek &&
+        prev.awayTeam === awayCode_peek
       ) {
         skipped++;
         continue;
