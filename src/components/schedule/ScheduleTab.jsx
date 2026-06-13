@@ -126,9 +126,10 @@ function MatchCard({ match, members }) {
   const ownersAway = members.filter(m => m.teams?.includes(match.awayTeam));
 
   const groupLetter = parseGroupLetter(match.group);
+  const ROUND_LABELS = { r32:'Round of 32', r16:'Round of 16', qf:'Quarterfinals', sf:'Semifinals', final:'Final', third:'3rd Place' };
   const roundLabel = match.round === 'group'
     ? `Group ${groupLetter}`
-    : match.round?.toUpperCase();
+    : ROUND_LABELS[match.round] ?? match.round?.toUpperCase();
 
   return (
     <div className="card-lg overflow-hidden"
