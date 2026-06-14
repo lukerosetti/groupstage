@@ -89,7 +89,9 @@ export default function ScheduleTab({ matches, members }) {
       {(() => {
         const byDate = {};
         for (const m of filtered) {
-          const d = getDate(m);
+          // Live matches always group under today regardless of kickoff date —
+          // a match that started yesterday and is still live should never show "Yesterday"
+          const d = (sub === 'live' || m.status === 'live') ? new Date() : getDate(m);
           const key = format(d, 'yyyy-MM-dd');
           byDate[key] = byDate[key] || { label: formatDayLabel(d), matches: [] };
           byDate[key].matches.push(m);
