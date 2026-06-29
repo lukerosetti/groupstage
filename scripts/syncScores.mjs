@@ -148,7 +148,8 @@ async function main() {
         prev.homeTeam !== 'UNK' &&
         prev.awayTeam !== 'UNK' &&
         prev.homeTeam === homeCode_peek &&
-        prev.awayTeam === awayCode_peek
+        prev.awayTeam === awayCode_peek &&
+        prev.round    === round           // must match — catches mis-classified KO rounds
       ) {
         skipped++;
         continue;
