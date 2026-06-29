@@ -58,12 +58,15 @@ const STATUS_MAP = {
 
 const ROUND_MAP = {
   GROUP_STAGE:    'group',
-  ROUND_OF_32:    'r32',
-  ROUND_OF_16:    'r16',
+  LAST_32:        'r32',   // football-data.org 2026 WC stage name
+  LAST_16:        'r16',
   QUARTER_FINALS: 'qf',
   SEMI_FINALS:    'sf',
   THIRD_PLACE:    'third',
   FINAL:          'final',
+  // Legacy aliases kept in case the API ever changes
+  ROUND_OF_32:    'r32',
+  ROUND_OF_16:    'r16',
 };
 
 const TLA_MAP = {
@@ -165,7 +168,8 @@ async function main() {
         prev.score?.away === scoreAway &&
         (prev.winner ?? null) === winner &&
         prev.homeTeam  === homeCode &&
-        prev.awayTeam  === awayCode
+        prev.awayTeam  === awayCode &&
+        prev.round     === round   // must check round — LAST_32/LAST_16 fix needs to propagate
       ) {
         skipped++;
         continue;

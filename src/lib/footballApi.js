@@ -34,12 +34,15 @@ export function normalizeStatus(apiStatus) {
 // Map API round to our round codes
 export function normalizeRound(stage) {
   const map = {
-    'GROUP_STAGE': 'group',
-    'ROUND_OF_32': 'r32',
-    'ROUND_OF_16': 'r16',
+    'GROUP_STAGE':    'group',
+    'LAST_32':        'r32',   // football-data.org 2026 WC names
+    'LAST_16':        'r16',
+    'ROUND_OF_32':    'r32',   // legacy aliases
+    'ROUND_OF_16':    'r16',
     'QUARTER_FINALS': 'qf',
-    'SEMI_FINALS': 'sf',
-    'FINAL': 'final',
+    'SEMI_FINALS':    'sf',
+    'THIRD_PLACE':    'third',
+    'FINAL':          'final',
   };
   return map[stage] || 'group';
 }
