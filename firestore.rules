@@ -25,11 +25,17 @@ service cloud.firestore {
       ]);
     }
 
-    // ── Match data (football-data.org sync, daemon-only writes) ──────────────
-    // Admin SDK bypasses this rule — clients are unconditionally blocked.
+    // ── Match data (football-data.org sync) ──────────────────────────────────
+    // Admin SDK bypasses these rules (sync daemon).
+    // Clients may update live-score fields so the UI transitions quickly when a
+    // game ends — the next cron run will overwrite with authoritative values.
     match /matches/{matchId} {
-      allow read:  if true;
-      allow write: if false;
+      allow read:   if true;
+      allow create: if false;
+      allow delete: if false;
+      allow update: if request.resource.data.diff(resource.data)
+                       .affectedKeys()
+                       .hasOnly(['score', 'minute', 'status', 'lastUpdated']);
     }
 
     // ── Pools ─────────────────────────────────────────────────────────────────

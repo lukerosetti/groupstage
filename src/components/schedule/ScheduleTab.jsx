@@ -37,18 +37,19 @@ export default function ScheduleTab({ matches, members }) {
 
   useEffect(() => {
     if (liveMatches.length === 0) return;
+    if (!import.meta.env.VITE_FOOTBALL_DATA_KEY) return;
     const interval = setInterval(async () => {
       for (const m of liveMatches) {
         try {
-          if (!import.meta.env.VITE_FOOTBALL_DATA_KEY) continue;
-          const data = await fetchMatch(m.apiId || m.id);
-          await updateDoc(doc(db, 'matches', m.id), {
-            score: { home: data.score?.fullTime?.home ?? 0, away: data.score?.fullTime?.away ?? 0 },
-            minute: data.minute || null,
-            status: normalizeStatus(data.status),
-            lastUpdated: new Date(),
-          });
-        } catch { /* ignore */ }
+          const data = await fetchMatch(m.id);
+          const status = normalizeStatus(data.status);
+          const update = { status, minute: data.minute || null, lastUpdated: new Date() };
+          // Only write score when the API has a final result (fullTime non-null).
+          // During live play fullTime is null — avoid overwriting with 0-0.
+          const ft = data.score?.fullTime;
+          if (ft?.home != null) update.score = { home: ft.home, away: ft.away };
+          await updateDoc(doc(db, 'matches', m.id), update);
+        } catch { /* ignore rate-limit / network errors */ }
       }
     }, 30000);
     return () => clearInterval(interval);
