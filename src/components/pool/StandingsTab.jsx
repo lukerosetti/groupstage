@@ -4,6 +4,29 @@ import { C } from '../../lib/colors';
 import { teamByCode } from '../../lib/teams';
 import { calcMemberPoints, POINTS } from '../../lib/scoring';
 
+// A team is eliminated when they:
+//   (a) lost a completed KO match (not 3rd-place, which is its own bracket)
+//   (b) the R32 has kicked off but they never appeared in any R32 slot
+function isEliminated(teamCode, matches) {
+  for (const m of matches) {
+    if (m.round === 'group' || m.round === 'third' || m.status !== 'completed') continue;
+    const isHome = m.homeTeam === teamCode;
+    const isAway = m.awayTeam === teamCode;
+    if (!isHome && !isAway) continue;
+    const mine   = isHome ? m.score?.home : m.score?.away;
+    const theirs = isHome ? m.score?.away : m.score?.home;
+    if (mine == null || theirs == null) continue;
+    const won = mine > theirs || (mine === theirs && m.winner === teamCode);
+    if (!won) return true;
+  }
+  // Group-stage elimination: R32 is underway but team has no R32 slot
+  const r32 = matches.filter(m => m.round === 'r32');
+  if (r32.some(m => m.status === 'completed' || m.status === 'live')) {
+    if (!r32.some(m => m.homeTeam === teamCode || m.awayTeam === teamCode)) return true;
+  }
+  return false;
+}
+
 export default function StandingsTab({ members, matches }) {
   const standings = members
     .map(m => ({ ...m, ...calcMemberPoints(m.teams || [], matches) }))
@@ -88,6 +111,7 @@ function MemberRow({ member, rank, matches }) {
             {Object.entries(breakdown).map(([code, { pts, stats }]) => {
               const team = teamByCode[code];
               if (!team) return null;
+              const eliminated = isEliminated(code, matches);
               const milestones = [
                 stats.r32Win   && 'R32 ✓',
                 stats.r16Win   && 'R16 ✓',
@@ -97,18 +121,20 @@ function MemberRow({ member, rank, matches }) {
                 stats.thirdWin && '3rd place',
               ].filter(Boolean);
               return (
-                <div key={code} className="p-3 rounded-lg" style={{ background: C.bg }}>
+                <div key={code} className="p-3 rounded-lg" style={{ background: C.bg, opacity: eliminated ? 0.42 : 1 }}>
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-lg">{team.flag}</span>
                     <span className="font-semibold text-sm truncate">{team.name}</span>
                     <span className="ml-auto font-bold font-mono text-sm shrink-0"
-                      style={{ color: C.navy }}>
+                      style={{ color: eliminated ? C.muted : C.navy }}>
                       {pts} pts
                     </span>
                   </div>
                   <div className="text-[10px]" style={{ color: C.muted }}>
-                    {stats.groupWins}W {stats.groupDraws}D {stats.groupLosses}L
-                    {milestones.length > 0 && ` · ${milestones.join(' · ')}`}
+                    {eliminated
+                      ? <span className="font-semibold uppercase tracking-wide">Eliminated</span>
+                      : <>{stats.groupWins}W {stats.groupDraws}D {stats.groupLosses}L{milestones.length > 0 && ` · ${milestones.join(' · ')}`}</>
+                    }
                   </div>
                 </div>
               );

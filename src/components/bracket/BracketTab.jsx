@@ -46,7 +46,7 @@ export default function BracketTab({ matches, members = [] }) {
       </div>
 
       {view === 'group' && <GroupStageView matches={matches} members={members} />}
-      {view === 'knockout' && <KnockoutView matches={matches} />}
+      {view === 'knockout' && <KnockoutView matches={matches} members={members} />}
     </div>
   );
 }
@@ -197,7 +197,7 @@ function GroupTable({ letter, teams, ownerByTeam }) {
   );
 }
 
-function KnockoutView({ matches }) {
+function KnockoutView({ matches, members }) {
   const knockout = matches.filter(m => m.round !== 'group');
   if (knockout.length === 0) {
     return (
@@ -205,6 +205,11 @@ function KnockoutView({ matches }) {
         Knockout rounds begin after the group stage. Check back later.
       </div>
     );
+  }
+
+  const ownerByTeam = {};
+  for (const m of members) {
+    for (const code of (m.teams || [])) ownerByTeam[code] = m;
   }
 
   return (
@@ -219,7 +224,7 @@ function KnockoutView({ matches }) {
                 {ROUND_LABELS[round]}
               </div>
               {roundMatches.map(m => (
-                <KnockoutCard key={m.id} match={m} isFinal={round === 'final'} isThird={round === 'third'} />
+                <KnockoutCard key={m.id} match={m} isFinal={round === 'final'} isThird={round === 'third'} ownerByTeam={ownerByTeam} />
               ))}
             </div>
           );
@@ -229,7 +234,7 @@ function KnockoutView({ matches }) {
   );
 }
 
-function KnockoutCard({ match, isFinal, isThird }) {
+function KnockoutCard({ match, isFinal, isThird, ownerByTeam }) {
   const home = teamByCode[match.homeTeam];
   const away = teamByCode[match.awayTeam];
 
@@ -263,9 +268,9 @@ function KnockoutCard({ match, isFinal, isThird }) {
         </div>
       )}
       <div className="p-3 space-y-1.5">
-        <KnockoutTeamRow team={home} score={match.score?.home} won={homeWon} lost={awayWon} />
+        <KnockoutTeamRow team={home} score={match.score?.home} won={homeWon} lost={awayWon} owner={ownerByTeam[match.homeTeam]} />
         <div className="h-px" style={{ background: C.border }} />
-        <KnockoutTeamRow team={away} score={match.score?.away} won={awayWon} lost={homeWon} />
+        <KnockoutTeamRow team={away} score={match.score?.away} won={awayWon} lost={homeWon} owner={ownerByTeam[match.awayTeam]} />
       </div>
       {wentToPens && (
         <div className="px-3 pb-1 text-[10px] font-semibold" style={{ color: C.muted }}>
@@ -284,11 +289,14 @@ function KnockoutCard({ match, isFinal, isThird }) {
   );
 }
 
-function KnockoutTeamRow({ team, score, won, lost }) {
+function KnockoutTeamRow({ team, score, won, lost, owner }) {
   return (
     <div className="flex items-center gap-2 py-0.5" style={{ opacity: lost ? 0.4 : 1 }}>
       <span className="text-xl">{team?.flag || '?'}</span>
       <span className="flex-1 font-semibold text-sm">{team?.name || 'TBD'}</span>
+      {owner && (
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ background: owner.color }} title={owner.name} />
+      )}
       {score != null && (
         <span className="font-bold font-mono" style={{ color: won ? C.navy : C.muted }}>{score}</span>
       )}
